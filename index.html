@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DME — Team Dashboard | Nestlé Business Solutions</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #ffffff; --bg2: #f4f4f2; --bg3: #f0efe9;
+  --text: #1a1a18; --text2: #5f5e5a; --text3: #9b9a95;
+  --border: rgba(0,0,0,0.09); --border2: rgba(0,0,0,0.18);
+  --radius: 8px; --radius-lg: 12px;
+  --blue: #185FA5; --blue-lt: #dceaf8;
+  --green: #3B6D11; --green-lt: #ddeece;
+  --red: #A32D2D; --red-lt: #fce8e8;
+  --amber: #854F0B; --amber-lt: #fae5c8;
+  --purple: #533AB7; --purple-lt: #e5e3fa;
+  --pink: #993556; --pink-lt: #f7d8e5;
+  --gray: #5F5E5A; --gray-lt: #e8e7e2;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1c1a; --bg2: #252523; --bg3: #1a1a18;
+    --text: #f0ede8; --text2: #9b9a95; --text3: #6b6a66;
+    --border: rgba(255,255,255,0.09); --border2: rgba(255,255,255,0.2);
+    --blue-lt: #0c2a44; --green-lt: #1a3008; --red-lt: #3d1010;
+    --amber-lt: #3a2005; --purple-lt: #1e1650; --pink-lt: #3a1020; --gray-lt: #2c2c2a;
+  }
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg3); color: var(--text); min-height: 100vh; }
+
+
+#pw-screen {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 2rem; background: var(--bg3);
+}
+.pw-box {
+  background: var(--bg); border: 0.5px solid var(--border2);
+  border-radius: 16px; padding: 2.5rem 2rem; text-align: center;
+  max-width: 380px; width: 100%;
+}
+.pw-logo { font-size: 28px; font-weight: 500; color: var(--blue); margin-bottom: 4px; }
+.pw-brand { font-size: 12px; color: var(--text3); margin-bottom: 2rem; }
+.pw-label { font-size: 13px; color: var(--text2); margin-bottom: 10px; display: block; text-align: left; }
+.pw-input {
+  width: 100%; padding: 10px 14px; border-radius: var(--radius);
+  border: 0.5px solid var(--border2); background: var(--bg2);
+  font-size: 14px; color: var(--text); outline: none;
+  transition: border-color 0.15s; margin-bottom: 12px;
+}
+.pw-input:focus { border-color: var(--blue); }
+.pw-btn {
+  width: 100%; padding: 10px; border-radius: 20px;
+  background: var(--blue); color: #fff; font-size: 14px;
+  font-weight: 500; border: none; cursor: pointer;
+  transition: opacity 0.15s;
+}
+.pw-btn:hover { opacity: 0.85; }
+.pw-error { font-size: 12px; color: var(--red); margin-top: 10px; min-height: 18px; }
+.pw-hint { font-size: 11px; color: var(--text3); margin-top: 1.5rem; }
+
+#upload-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem; }
+.upload-box {
+  background: var(--bg); border: 1.5px dashed var(--border2);
+  border-radius: 16px; padding: 3rem 2.5rem; text-align: center;
+  max-width: 460px; width: 100%; cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.upload-box:hover, .upload-box.drag-over { border-color: var(--blue); background: var(--blue-lt); }
+.upload-icon { width: 48px; height: 48px; margin: 0 auto 1.25rem; opacity: 0.3; }
+.upload-title { font-size: 17px; font-weight: 500; margin-bottom: 4px; }
+.upload-brand { font-size: 11px; color: var(--text3); margin-bottom: 1rem; }
+.upload-sub { font-size: 13px; color: var(--text3); margin-bottom: 1.5rem; line-height: 1.6; }
+.upload-btn { display: inline-block; font-size: 13px; font-weight: 500; padding: 9px 22px; border-radius: 20px; background: var(--blue); color: #fff; cursor: pointer; border: none; transition: opacity 0.15s; }
+.upload-btn:hover { opacity: 0.85; }
+#file-input { display: none; }
+.upload-note { font-size: 11px; color: var(--text3); margin-top: 1rem; }
+
+#dashboard { display: none; padding: 1.75rem 2rem 3rem; max-width: 1140px; margin: 0 auto; }
+
+.top-bar { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 10px; }
+.top-bar-title { font-size: 19px; font-weight: 500; }
+.top-bar-sub { font-size: 13px; color: var(--text2); margin-top: 3px; }
+.top-bar-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.action-btn { font-size: 12px; padding: 7px 16px; border-radius: 20px; border: 0.5px solid var(--border2); background: var(--bg); color: var(--text2); cursor: pointer; white-space: nowrap; transition: background 0.15s; }
+.action-btn:hover { background: var(--bg2); }
+
+.filter-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--bg); border: 0.5px solid var(--border);
+  border-radius: var(--radius-lg); padding: 10px 14px;
+  margin-bottom: 1.25rem;
+}
+.filter-label { font-size: 12px; color: var(--text3); font-weight: 500; white-space: nowrap; }
+.filter-sep { width: 0.5px; height: 20px; background: var(--border2); flex-shrink: 0; }
+.filter-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; flex: 1; }
+.filter-group-label { font-size: 11px; color: var(--text3); white-space: nowrap; }
+.pill {
+  font-size: 12px; padding: 4px 11px; border-radius: 20px;
+  border: 0.5px solid var(--border2); background: var(--bg2);
+  color: var(--text2); cursor: pointer; transition: all 0.12s;
+  white-space: nowrap; user-select: none;
+}
+.pill:hover { border-color: var(--blue); color: var(--blue); }
+.pill.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+.filter-clear { font-size: 11px; color: var(--text3); cursor: pointer; white-space: nowrap; padding: 4px 6px; border-radius: 4px; }
+.filter-clear:hover { color: var(--red); }
+.filter-indicator { font-size: 11px; color: var(--blue); font-weight: 500; white-space: nowrap; }
+
+.kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-bottom: 1.5rem; }
+.kpi { background: var(--bg2); border-radius: var(--radius); padding: 14px 16px; transition: all 0.2s; }
+.kpi-label { font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+.kpi-value { font-size: 28px; font-weight: 500; line-height: 1; }
+.kpi-sub { font-size: 11px; color: var(--text3); margin-top: 5px; display: flex; align-items: center; gap: 5px; }
+.dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+.row-2 { display: grid; grid-template-columns: minmax(0,1.4fr) minmax(0,1fr); gap: 14px; margin-bottom: 1.5rem; }
+.row-3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; margin-bottom: 1.5rem; }
+.card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; }
+.card-title { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 12px; }
+
+.bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.bar-label { font-size: 12px; color: var(--text2); width: 105px; flex-shrink: 0; text-align: right; }
+.bar-track { flex: 1; background: var(--bg2); border-radius: 3px; height: 10px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+.bar-val { font-size: 12px; color: var(--text3); width: 24px; }
+
+.tl-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+.tl-avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; flex-shrink: 0; }
+.tl-name { font-size: 13px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tl-mini-bar { width: 70px; flex-shrink: 0; background: var(--bg2); border-radius: 3px; height: 8px; overflow: hidden; }
+.tl-count { font-size: 13px; font-weight: 500; width: 26px; text-align: right; flex-shrink: 0; }
+
+.scope-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.scope-label { font-size: 12px; color: var(--text2); width: 65px; flex-shrink: 0; }
+.scope-bar { flex: 1; background: var(--bg2); border-radius: 3px; height: 10px; overflow: hidden; }
+.scope-val { font-size: 12px; color: var(--text3); width: 28px; text-align: right; flex-shrink: 0; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text2); }
+.legend-sq { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+.hiring-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.hiring-tile { background: var(--bg2); border-radius: var(--radius); padding: 8px 14px; text-align: center; min-width: 80px; }
+.hiring-num { font-size: 20px; font-weight: 500; color: var(--blue); }
+.hiring-lbl { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+.empty-state { font-size: 13px; color: var(--text3); padding: 1rem 0; text-align: center; }
+.footer { font-size: 11px; color: var(--text3); text-align: right; margin-top: 1.5rem; }
+.error-msg { background: var(--red-lt); color: var(--red); font-size: 13px; padding: 10px 14px; border-radius: var(--radius); margin-bottom: 1rem; }
+
+@media (max-width: 720px) {
+  #dashboard { padding: 1rem; }
+  .kpi-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .row-2, .row-3 { grid-template-columns: 1fr; }
+  .filter-bar { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+
+
+<div id="pw-screen">
+  <div class="pw-box">
+    <div class="pw-logo">DME</div>
+    <div class="pw-brand">Nestlé Business Solutions · Team Dashboard</div>
+    <label class="pw-label">Password de acesso</label>
+    <input type="password" class="pw-input" id="pw-input" placeholder="Introduz a password" onkeydown="if(event.key==='Enter')checkPw()">
+    <button class="pw-btn" onclick="checkPw()">Entrar</button>
+    <div class="pw-error" id="pw-error"></div>
+    <div class="pw-hint">Acesso reservado à equipa DME</div>
+  </div>
+</div>
+
+<div id="upload-screen" style="display:none;">
+  <div class="upload-box" id="drop-zone">
+    <svg class="upload-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="6" y="6" width="36" height="36" rx="6"/>
+      <path d="M24 32V16M17 23l7-7 7 7"/>
+      <path d="M16 36h16"/>
+    </svg>
+    <div class="upload-title">DME — Team Dashboard</div>
+    <div class="upload-brand">Nestlé Business Solutions</div>
+    <div class="upload-sub">Arrasta o teu ficheiro Excel aqui<br>ou clica para seleccionar</div>
+    <label class="upload-btn" for="file-input">Seleccionar ficheiro</label>
+    <input type="file" id="file-input" accept=".xlsx,.xls">
+    <div class="upload-note">Compatível com o formato Book_5.xlsx e actualizações futuras</div>
+  </div>
+</div>
+
+<div id="dashboard">
+  <div id="error-area"></div>
+
+  <div class="top-bar">
+    <div>
+      <div class="top-bar-title">DME — Team Dashboard</div>
+      <div class="top-bar-sub" id="dash-sub">Nestlé Business Solutions</div>
+    </div>
+    <div class="top-bar-actions">
+      <span class="filter-indicator" id="filter-indicator" style="display:none;"></span>
+      <button class="action-btn" onclick="clearAllFilters()">Limpar filtros</button>
+      <button class="action-btn" onclick="resetDashboard()">Carregar novo ficheiro</button>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <div class="filter-label">Filtros</div>
+    <div class="filter-sep"></div>
+    <div style="display:flex; flex-direction:column; gap:6px; flex:1;">
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <span class="filter-group-label" style="width:75px;">Category</span>
+        <div class="filter-group" id="filter-category"></div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <span class="filter-group-label" style="width:75px;">Stream</span>
+        <div class="filter-group" id="filter-stream"></div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <span class="filter-group-label" style="width:75px;">Team lead</span>
+        <div class="filter-group" id="filter-tl"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="kpi-label">Active headcount</div>
+      <div class="kpi-value" style="color:var(--blue);" id="kpi-live">—</div>
+      <div class="kpi-sub"><span class="dot" style="background:var(--blue);"></span>Live &amp; deployed</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Open positions</div>
+      <div class="kpi-value" style="color:var(--green);" id="kpi-hiring">—</div>
+      <div class="kpi-sub"><span class="dot" style="background:var(--green);"></span>Actively hiring</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Not live</div>
+      <div class="kpi-value" style="color:var(--red);" id="kpi-notlive">—</div>
+      <div class="kpi-sub"><span class="dot" style="background:var(--red);"></span>Moved / departed</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Gender split (live)</div>
+      <div class="kpi-value" id="kpi-gender">—</div>
+      <div class="kpi-sub" id="kpi-gender-sub"><span class="dot" style="background:#B5D4F4;"></span></div>
+    </div>
+  </div>
+
+  <div class="row-2">
+    <div class="card">
+      <div class="card-title">Active headcount by stream</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-sq" style="background:#3266ad;"></div>Live</div>
+        <div class="legend-item"><div class="legend-sq" style="background:#639922;"></div>Hiring</div>
+      </div>
+      <div style="position:relative;height:260px;"><canvas id="streamChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Team lead headcount (live)</div>
+      <div id="tl-rows"></div>
+      <div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border);font-size:12px;color:var(--text3);" id="tl-total"></div>
+    </div>
+  </div>
+
+  <div class="row-2">
+    <div class="card">
+      <div class="card-title">Category breakdown (live headcount)</div>
+      <div style="position:relative;" id="cat-wrap"><canvas id="catChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Regional scope (live)</div>
+      <div id="scope-rows"></div>
+    </div>
+  </div>
+
+  <div class="row-3">
+    <div class="card">
+      <div class="card-title">Attrition reasons</div>
+      <div id="attr-bars"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Tenure distribution (live)</div>
+      <div style="position:relative;height:165px;"><canvas id="tenureChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Location &amp; remote (live)</div>
+      <div id="location-legend" class="legend"></div>
+      <div style="position:relative;height:110px;"><canvas id="locationChart"></canvas></div>
+      <div style="border-top:0.5px solid var(--border);padding-top:10px;margin-top:10px;" id="remote-bars"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:1rem;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div class="card-title" style="margin:0;">Open hiring pipeline by stream</div>
+      <div style="font-size:12px;color:var(--text3);" id="hiring-total-label"></div>
+    </div>
+    <div class="hiring-grid" id="hiring-tiles"></div>
+  </div>
+
+  <div class="footer" id="footer-note"></div>
+</div>
+
+<script>
+const COLORS = ['#185FA5','#3B6D11','#533AB7','#BA7517','#D85A30','#993556','#0F6E56','#5F5E5A','#B5D4F4','#C0DD97','#FAC775'];
+const TL_PALETTE = [
+  {color:'#185FA5',bg:'#dceaf8'},{color:'#3B6D11',bg:'#ddeece'},
+  {color:'#854F0B',bg:'#fae5c8'},{color:'#993556',bg:'#f7d8e5'},
+  {color:'#533AB7',bg:'#e5e3fa'},{color:'#5F5E5A',bg:'#e8e7e2'},
+  {color:'#0F6E56',bg:'#d0f0e6'},{color:'#A32D2D',bg:'#fce8e8'}
+];
+
+let charts = {};
+let allRows = [];
+let cols = {};
+let activeFilters = { category: new Set(), stream: new Set(), tl: new Set() };
+let filterOptions = { category: [], stream: [], tl: [] };
+
+function initials(name) {
+  return name.trim().split(/\s+/).slice(0,2).map(w=>w[0].toUpperCase()).join('');
+}
+function normalizeName(name) {
+  if (!name) return '';
+  return name.trim().replace(/\s+/g,' ').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());
+}
+function groupBy(rows, col) {
+  const m = {};
+  rows.forEach(r => {
+    const k = normalizeName((r[col]||'').toString());
+    if (k) m[k] = (m[k]||0) + 1;
+  });
+  return Object.entries(m).sort((a,b)=>b[1]-a[1]);
+}
+
+function resetDashboard() {
+  Object.values(charts).forEach(c => { try { c.destroy(); } catch(e){} });
+  charts = {};
+  allRows = [];
+  cols = {};
+  activeFilters = { category: new Set(), stream: new Set(), tl: new Set() };
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('upload-screen').style.display = 'flex';
+  document.getElementById('file-input').value = '';
+}
+
+function clearAllFilters() {
+  activeFilters = { category: new Set(), stream: new Set(), tl: new Set() };
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  updateFilterIndicator();
+  renderCharts();
+}
+
+function toggleFilter(type, value, el) {
+  if (activeFilters[type].has(value)) {
+    activeFilters[type].delete(value);
+    el.classList.remove('active');
+  } else {
+    activeFilters[type].add(value);
+    el.classList.add('active');
+  }
+  updateFilterIndicator();
+  renderCharts();
+}
+
+function updateFilterIndicator() {
+  const total = activeFilters.category.size + activeFilters.stream.size + activeFilters.tl.size;
+  const ind = document.getElementById('filter-indicator');
+  if (total > 0) {
+    ind.style.display = 'inline';
+    ind.textContent = `${total} filtro${total>1?'s':''} activo${total>1?'s':''}`;
+  } else {
+    ind.style.display = 'none';
+  }
+}
+
+function getFilteredRows() {
+  return allRows.filter(r => {
+    const cat = normalizeName((r[cols.cat]||'').toString());
+    const stream = normalizeName((r[cols.stream]||'').toString());
+    const tl = normalizeName((r[cols.tl]||'').toString());
+    if (activeFilters.category.size > 0 && !activeFilters.category.has(cat)) return false;
+    if (activeFilters.stream.size > 0 && !activeFilters.stream.has(stream)) return false;
+    if (activeFilters.tl.size > 0 && !activeFilters.tl.has(tl)) return false;
+    return true;
+  });
+}
+
+function buildFilterPills() {
+  ['category','stream','tl'].forEach(type => {
+    const container = document.getElementById(`filter-${type}`);
+    container.innerHTML = '';
+    filterOptions[type].forEach(val => {
+      const pill = document.createElement('span');
+      pill.className = 'pill';
+      pill.textContent = val;
+      pill.onclick = () => toggleFilter(type, val, pill);
+      container.appendChild(pill);
+    });
+  });
+}
+
+function processFile(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, {type:'array', cellDates:true});
+      const sheetName = wb.SheetNames.includes('2026') ? '2026' : wb.SheetNames[0];
+      const ws = wb.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+      initDashboard(rows, file.name, sheetName);
+    } catch(err) {
+      document.getElementById('error-area').innerHTML = `<div class="error-msg">Erro ao ler o ficheiro: ${err.message}</div>`;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function initDashboard(rows, filename, sheetName) {
+  allRows = rows;
+  const keys = Object.keys(rows[0] || {});
+  cols = {
+    status: keys.find(k=>k.trim().toLowerCase().includes('status2')) || 'Status2',
+    tl:     keys.find(k=>k.trim().toLowerCase().includes('team lead')) || 'Team Lead',
+    stream: keys.find(k=>k.trim().toLowerCase()==='stream') || 'Stream',
+    cat:    keys.find(k=>k.trim().toLowerCase()==='category') || 'Category',
+    gender: keys.find(k=>k.trim().toLowerCase()==='gender') || 'Gender',
+    reason: keys.find(k=>k.trim().toLowerCase().includes('status reason')&&!k.toLowerCase().includes('change')) || 'Status Reason',
+    scope:  keys.find(k=>k.trim().toLowerCase().includes('regional scope')) || 'Regional Scope',
+    loc:    keys.find(k=>k.trim().toLowerCase()==='location') || 'Location',
+    remote: keys.find(k=>k.trim().toLowerCase()==='remote') || 'Remote',
+    date:   keys.find(k=>k.trim().toLowerCase()==="nestlé start date"||k.trim().toLowerCase()==="nestle start date") || keys.find(k=>k.trim().toLowerCase().includes('start date')) || 'Nestlé Start Date',
+  };
+
+  const today = new Date();
+  document.getElementById('dash-sub').textContent = `Nestlé Business Solutions · ${today.toLocaleDateString('en-GB',{month:'long',year:'numeric'})}`;
+  document.getElementById('footer-note').textContent = `Data loaded: ${today.toLocaleDateString('en-GB')} · ${filename} (sheet: ${sheetName}) · ${rows.length} records total`;
+
+  const live = rows.filter(r=>(r[cols.status]||'').toString().trim()==='Live');
+  filterOptions.category = [...new Set(live.map(r=>normalizeName((r[cols.cat]||'').toString())).filter(Boolean))].sort();
+  filterOptions.stream   = [...new Set(rows.map(r=>normalizeName((r[cols.stream]||'').toString())).filter(Boolean))].sort();
+  filterOptions.tl       = [...new Set(live.map(r=>normalizeName((r[cols.tl]||'').toString())).filter(Boolean))].sort();
+
+  buildFilterPills();
+
+  document.getElementById('upload-screen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  document.getElementById('error-area').innerHTML = '';
+
+  renderCharts();
+}
+
+function renderCharts() {
+  const filtered = getFilteredRows();
+  const today = new Date();
+
+  const live     = filtered.filter(r=>(r[cols.status]||'').toString().trim()==='Live');
+  const notLive  = filtered.filter(r=>(r[cols.status]||'').toString().trim()==='Not Live');
+  const hiring   = filtered.filter(r=>(r[cols.status]||'').toString().trim()==='Hiring');
+  const parental = filtered.filter(r=>(r[cols.status]||'').toString().trim().toLowerCase().includes('parental'));
+
+  const fCount = live.filter(r=>(r[cols.gender]||'').toString().trim().toLowerCase()==='f').length;
+  const mCount = live.filter(r=>(r[cols.gender]||'').toString().trim().toLowerCase()==='m').length;
+  const fPct = live.length ? Math.round(fCount/live.length*100) : 0;
+  const mPct = live.length ? Math.round(mCount/live.length*100) : 0;
+
+  document.getElementById('kpi-live').textContent = live.length;
+  document.getElementById('kpi-hiring').textContent = hiring.length;
+  document.getElementById('kpi-notlive').textContent = notLive.length;
+  document.getElementById('kpi-gender').innerHTML = live.length
+    ? `${fPct}<span style="font-size:14px;font-weight:400;color:var(--text3);">% F</span>`
+    : '—';
+  document.getElementById('kpi-gender-sub').innerHTML =
+    `<span class="dot" style="background:#B5D4F4;"></span>${mPct}% M${parental.length ? ` · ${parental.length} parental leave` : ''}`;
+
+  const allStreams = [...new Set([...live.map(r=>r[cols.stream]), ...hiring.map(r=>r[cols.stream])].map(s=>(s||'').toString().trim()))].filter(Boolean);
+  const streamLive={}, streamHiring={};
+  allStreams.forEach(s => {
+    streamLive[s]   = live.filter(r=>(r[cols.stream]||'').toString().trim()===s).length;
+    streamHiring[s] = hiring.filter(r=>(r[cols.stream]||'').toString().trim()===s).length;
+  });
+  const streamsSorted = allStreams.sort((a,b)=>((streamLive[b]||0)+(streamHiring[b]||0))-((streamLive[a]||0)+(streamHiring[a]||0)));
+
+  if (charts.stream) charts.stream.destroy();
+  if (streamsSorted.length) {
+    charts.stream = new Chart(document.getElementById('streamChart'), {
+      type:'bar',
+      data:{
+        labels: streamsSorted,
+        datasets:[
+          {label:'Live',   data:streamsSorted.map(s=>streamLive[s]||0),   backgroundColor:'#3266ad'},
+          {label:'Hiring', data:streamsSorted.map(s=>streamHiring[s]||0), backgroundColor:'#639922'}
+        ]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        scales:{
+          x:{stacked:true, ticks:{font:{size:11},autoSkip:false,maxRotation:40}, grid:{display:false}},
+          y:{stacked:true, ticks:{font:{size:11}}, grid:{color:'rgba(128,128,128,0.12)'}}
+        }
+      }
+    });
+  }
+
+  const tlEntries = groupBy(live, cols.tl);
+  const maxTL = tlEntries[0]?.[1] || 1;
+  const tlContainer = document.getElementById('tl-rows');
+  tlContainer.innerHTML = tlEntries.length ? '' : '<div class="empty-state">Sem dados</div>';
+  tlEntries.forEach(([name, cnt], i) => {
+    const pal = TL_PALETTE[i % TL_PALETTE.length];
+    tlContainer.innerHTML += `<div class="tl-row">
+      <div class="tl-avatar" style="background:${pal.bg};color:${pal.color};">${initials(name)}</div>
+      <div class="tl-name">${name}</div>
+      <div class="tl-mini-bar"><div style="height:100%;width:${Math.round(cnt/maxTL*100)}%;background:${pal.color};border-radius:3px;"></div></div>
+      <div class="tl-count">${cnt}</div>
+    </div>`;
+  });
+  document.getElementById('tl-total').textContent = `Total live: ${live.length}`;
+
+  const catEntries = groupBy(live, cols.cat);
+  const catWrap = document.getElementById('cat-wrap');
+  catWrap.style.height = Math.max(160, catEntries.length * 28 + 40) + 'px';
+  if (charts.cat) charts.cat.destroy();
+  if (catEntries.length) {
+    charts.cat = new Chart(document.getElementById('catChart'), {
+      type:'bar',
+      data:{
+        labels: catEntries.map(e=>e[0]),
+        datasets:[{data:catEntries.map(e=>e[1]), backgroundColor:catEntries.map((_,i)=>COLORS[i%COLORS.length])}]
+      },
+      options:{
+        indexAxis:'y', responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        scales:{
+          x:{ticks:{font:{size:11}}, grid:{color:'rgba(128,128,128,0.12)'}},
+          y:{ticks:{font:{size:11}}, grid:{display:false}}
+        }
+      }
+    });
+  }
+
+  const scopeEntries = groupBy(live, cols.scope);
+  const maxScope = scopeEntries[0]?.[1] || 1;
+  const scopeContainer = document.getElementById('scope-rows');
+  scopeContainer.innerHTML = scopeEntries.length ? '' : '<div class="empty-state">Sem dados</div>';
+  scopeEntries.forEach(([label, val], i) => {
+    scopeContainer.innerHTML += `<div class="scope-row">
+      <div class="scope-label">${label}</div>
+      <div class="scope-bar"><div style="height:100%;width:${Math.round(val/maxScope*100)}%;background:${COLORS[i%COLORS.length]};border-radius:3px;"></div></div>
+      <div class="scope-val">${val}</div>
+    </div>`;
+  });
+
+  const attrEntries = groupBy(notLive, cols.reason);
+  const maxAttr = attrEntries[0]?.[1] || 1;
+  const attrColors = ['#E24B4A','#EF9F27','#D85A30','#888780','#B5D4F4'];
+  const attrContainer = document.getElementById('attr-bars');
+  attrContainer.innerHTML = attrEntries.length ? '' : '<div class="empty-state">Sem dados</div>';
+  attrEntries.forEach(([label, val], i) => {
+    attrContainer.innerHTML += `<div class="bar-row">
+      <div class="bar-label">${label}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(val/maxAttr*100)}%;background:${attrColors[i%attrColors.length]};"></div></div>
+      <div class="bar-val">${val}</div>
+    </div>`;
+  });
+
+  const tenureBuckets = {'< 1 yr':0,'1–2 yrs':0,'2–3 yrs':0,'3–5 yrs':0,'5+ yrs':0,'Unknown':0};
+  live.forEach(r => {
+    const d = r[cols.date];
+    if (!d) { tenureBuckets['Unknown']++; return; }
+    const dt = d instanceof Date ? d : new Date(d);
+    if (isNaN(dt)) { tenureBuckets['Unknown']++; return; }
+    const yrs = (today - dt) / (365.25*24*3600*1000);
+    if (yrs < 1) tenureBuckets['< 1 yr']++;
+    else if (yrs < 2) tenureBuckets['1–2 yrs']++;
+    else if (yrs < 3) tenureBuckets['2–3 yrs']++;
+    else if (yrs < 5) tenureBuckets['3–5 yrs']++;
+    else tenureBuckets['5+ yrs']++;
+  });
+  if (charts.tenure) charts.tenure.destroy();
+  charts.tenure = new Chart(document.getElementById('tenureChart'), {
+    type:'doughnut',
+    data:{
+      labels: Object.keys(tenureBuckets),
+      datasets:[{data:Object.values(tenureBuckets), backgroundColor:['#185FA5','#3B6D11','#EF9F27','#D85A30','#533AB7','#B4B2A9'], borderWidth:2, borderColor:'transparent'}]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:'62%',
+      plugins:{legend:{display:true, position:'right', labels:{font:{size:11}, boxWidth:10, padding:6}}}
+    }
+  });
+
+  const locationEntries = groupBy(live, cols.loc);
+  const locColors = ['#185FA5','#3B6D11','#854F0B','#533AB7','#D85A30'];
+  const locLegend = document.getElementById('location-legend');
+  locLegend.innerHTML = '';
+  locationEntries.forEach(([name, cnt], i) => {
+    locLegend.innerHTML += `<div class="legend-item"><div class="legend-sq" style="background:${locColors[i%locColors.length]};"></div>${name} ${cnt}</div>`;
+  });
+  if (charts.location) charts.location.destroy();
+  charts.location = new Chart(document.getElementById('locationChart'), {
+    type:'doughnut',
+    data:{
+      labels: locationEntries.map(e=>e[0]),
+      datasets:[{data:locationEntries.map(e=>e[1]), backgroundColor:locationEntries.map((_,i)=>locColors[i%locColors.length]), borderWidth:2, borderColor:'transparent'}]
+    },
+    options:{responsive:true, maintainAspectRatio:false, cutout:'60%', plugins:{legend:{display:false}}}
+  });
+
+  const onSite = live.filter(r=>(r[cols.remote]||'').toString().trim().toUpperCase()==='NO').length;
+  const remote = live.filter(r=>(r[cols.remote]||'').toString().trim().toUpperCase()==='YES').length;
+  const maxR = Math.max(onSite, remote, 1);
+  document.getElementById('remote-bars').innerHTML = `
+    <div class="bar-row"><div style="font-size:12px;color:var(--text2);width:60px;">On-site</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(onSite/maxR*100)}%;background:#185FA5;"></div></div><div class="bar-val">${onSite}</div></div>
+    <div class="bar-row"><div style="font-size:12px;color:var(--text2);width:60px;">Remote</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(remote/maxR*100)}%;background:#B5D4F4;"></div></div><div class="bar-val">${remote}</div></div>`;
+
+  const hiringStreamEntries = groupBy(hiring, cols.stream);
+  document.getElementById('hiring-total-label').textContent = `${hiring.length} open roles`;
+  const tilesContainer = document.getElementById('hiring-tiles');
+  tilesContainer.innerHTML = hiringStreamEntries.length
+    ? hiringStreamEntries.map(([stream, cnt]) =>
+        `<div class="hiring-tile"><div class="hiring-num">${cnt}</div><div class="hiring-lbl">${stream}</div></div>`
+      ).join('')
+    : '<div class="empty-state">Sem posições abertas</div>';
+}
+
+
+const PW_HASH = 'dca98ee2ff2b7eb09a72ddda8d620a3d0d0680bb358f2e32ae4743dfeede7e6d';
+
+async function hashString(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function checkPw() {
+  const val = document.getElementById('pw-input').value;
+  if (!val) return;
+  const hash = await hashString(val);
+  if (hash === PW_HASH) {
+    sessionStorage.setItem('dme_auth', '1');
+    document.getElementById('pw-screen').style.display = 'none';
+    document.getElementById('upload-screen').style.display = 'flex';
+  } else {
+    document.getElementById('pw-error').textContent = 'Password incorrecta. Tenta novamente.';
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-input').focus();
+  }
+}
+
+function checkSession() {
+  if (sessionStorage.getItem('dme_auth') === '1') {
+    document.getElementById('pw-screen').style.display = 'none';
+    document.getElementById('upload-screen').style.display = 'flex';
+  }
+}
+
+
+document.getElementById('file-input').addEventListener('change', function(e) {
+  if (e.target.files[0]) processFile(e.target.files[0]);
+});
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f && (f.name.endsWith('.xlsx')||f.name.endsWith('.xls'))) processFile(f);
+  else document.getElementById('error-area').innerHTML = '<div class="error-msg">Por favor carrega um ficheiro Excel (.xlsx ou .xls)</div>';
+});
+dropZone.addEventListener('click', () => document.getElementById('file-input').click());
+checkSession();
+</script>
+</body>
+</html>
