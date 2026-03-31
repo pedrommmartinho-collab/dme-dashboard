@@ -222,6 +222,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
         <span class="filter-group-label" style="width:75px;">Team lead</span>
         <div class="filter-group" id="filter-tl"></div>
       </div>
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <span class="filter-group-label" style="width:75px;">Location</span>
+        <div class="filter-group" id="filter-location"></div>
+      </div>
     </div>
   </div>
 
@@ -315,8 +319,8 @@ const TL_PALETTE = [
 let charts = {};
 let allRows = [];
 let cols = {};
-let activeFilters = { category: new Set(), stream: new Set(), tl: new Set() };
-let filterOptions = { category: [], stream: [], tl: [] };
+let activeFilters = { category: new Set(), stream: new Set(), tl: new Set(), location: new Set() };
+let filterOptions = { category: [], stream: [], tl: [], location: [] };
 
 function initials(name) {
   return name.trim().split(/\s+/).slice(0,2).map(w=>w[0].toUpperCase()).join('');
@@ -339,14 +343,14 @@ function resetDashboard() {
   charts = {};
   allRows = [];
   cols = {};
-  activeFilters = { category: new Set(), stream: new Set(), tl: new Set() };
+  activeFilters = { category: new Set(), stream: new Set(), tl: new Set(), location: new Set() };
   document.getElementById('dashboard').style.display = 'none';
   document.getElementById('upload-screen').style.display = 'flex';
   document.getElementById('file-input').value = '';
 }
 
 function clearAllFilters() {
-  activeFilters = { category: new Set(), stream: new Set(), tl: new Set() };
+  activeFilters = { category: new Set(), stream: new Set(), tl: new Set(), location: new Set() };
   document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
   updateFilterIndicator();
   renderCharts();
@@ -365,7 +369,7 @@ function toggleFilter(type, value, el) {
 }
 
 function updateFilterIndicator() {
-  const total = activeFilters.category.size + activeFilters.stream.size + activeFilters.tl.size;
+  const total = activeFilters.category.size + activeFilters.stream.size + activeFilters.tl.size + activeFilters.location.size;
   const ind = document.getElementById('filter-indicator');
   if (total > 0) {
     ind.style.display = 'inline';
@@ -380,15 +384,17 @@ function getFilteredRows() {
     const cat = normalizeName((r[cols.cat]||'').toString());
     const stream = normalizeName((r[cols.stream]||'').toString());
     const tl = normalizeName((r[cols.tl]||'').toString());
+    const location = normalizeName((r[cols.loc]||'').toString());
     if (activeFilters.category.size > 0 && !activeFilters.category.has(cat)) return false;
     if (activeFilters.stream.size > 0 && !activeFilters.stream.has(stream)) return false;
     if (activeFilters.tl.size > 0 && !activeFilters.tl.has(tl)) return false;
+    if (activeFilters.location.size > 0 && !activeFilters.location.has(location)) return false;
     return true;
   });
 }
 
 function buildFilterPills() {
-  ['category','stream','tl'].forEach(type => {
+  ['category','stream','tl','location'].forEach(type => {
     const container = document.getElementById(`filter-${type}`);
     container.innerHTML = '';
     filterOptions[type].forEach(val => {
@@ -441,6 +447,7 @@ function initDashboard(rows, filename, sheetName) {
   filterOptions.category = [...new Set(live.map(r=>normalizeName((r[cols.cat]||'').toString())).filter(Boolean))].sort();
   filterOptions.stream   = [...new Set(rows.map(r=>normalizeName((r[cols.stream]||'').toString())).filter(Boolean))].sort();
   filterOptions.tl       = [...new Set(live.map(r=>normalizeName((r[cols.tl]||'').toString())).filter(Boolean))].sort();
+  filterOptions.location = [...new Set(rows.map(r=>normalizeName((r[cols.loc]||'').toString())).filter(Boolean))].sort();
 
   buildFilterPills();
 
